@@ -7,9 +7,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server/server.js",
+    "start:prod": "NODE_ENV=production node server/server.js",
     "dev": "nodemon server/server.js",
     "start:old": "nodemon server/index.js",
-    "seed": "node server/seed.js"
+    "seed": "node server/seed.js",
+    "create-indexes": "node server/createIndexes.js"
   },
   "keywords": [],
   "author": "",

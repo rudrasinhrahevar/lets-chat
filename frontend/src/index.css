@@ -47,7 +47,194 @@ html, body {
   height: 100%;
 }
 
-/* Scrollbar styling */
+/* ─── WhatsApp Doodle Background ─── */
+.wa-chat-bg {
+  background-color: var(--wa-bg);
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='p' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M20 5 L25 10 L20 15 L15 10Z' fill='none' stroke='%2300a88433' stroke-width='0.5'/%3E%3Ccircle cx='10' cy='30' r='2' fill='none' stroke='%2300a88422' stroke-width='0.5'/%3E%3Cpath d='M30 25 Q35 30 30 35' fill='none' stroke='%2300a88422' stroke-width='0.5'/%3E%3Cpath d='M5 20 L8 17 L11 20' fill='none' stroke='%2300a88422' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='200' height='200' fill='url(%23p)'/%3E%3C/svg%3E");
+}
+
+:root.dark .wa-chat-bg {
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='p' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M20 5 L25 10 L20 15 L15 10Z' fill='none' stroke='%23ffffff08' stroke-width='0.5'/%3E%3Ccircle cx='10' cy='30' r='2' fill='none' stroke='%23ffffff06' stroke-width='0.5'/%3E%3Cpath d='M30 25 Q35 30 30 35' fill='none' stroke='%23ffffff06' stroke-width='0.5'/%3E%3Cpath d='M5 20 L8 17 L11 20' fill='none' stroke='%23ffffff06' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='200' height='200' fill='url(%23p)'/%3E%3C/svg%3E");
+}
+
+/* ─── Bubble Tails ─── */
+.bubble-tail-right::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid var(--wa-bubble);
+  border-top: 8px solid var(--wa-bubble);
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-top-right-radius: 4px;
+}
+
+.bubble-tail-left::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 0;
+  height: 0;
+  border-right: 8px solid var(--wa-bubble2);
+  border-top: 8px solid var(--wa-bubble2);
+  border-left: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-top-left-radius: 4px;
+}
+
+/* ─── Date Separator ─── */
+.date-separator {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+.date-separator span {
+  background: var(--wa-panel);
+  color: var(--wa-text-sec);
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+  user-select: none;
+}
+
+/* ─── Unread Divider ─── */
+.unread-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+}
+.unread-divider span {
+  background: rgba(0, 168, 132, 0.15);
+  color: #00a884;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 16px;
+  border-radius: 8px;
+}
+
+/* ─── Scroll to Bottom Button ─── */
+.scroll-bottom-btn {
+  position: absolute;
+  bottom: 90px;
+  right: 20px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--wa-panel);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+.scroll-bottom-btn:hover {
+  background: var(--wa-input);
+  transform: scale(1.05);
+}
+.scroll-bottom-btn .badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #00a884;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+/* ─── Voice Recording UI ─── */
+.voice-recording-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--wa-panel);
+  border-top: 1px solid var(--wa-border);
+  animation: slideUp 0.2s ease-out;
+}
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ea4335;
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+.recording-timer {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--wa-text);
+  min-width: 50px;
+}
+.slide-cancel {
+  color: var(--wa-text-sec);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: slideLeft 1.5s ease-in-out infinite;
+}
+
+/* ─── Message Highlight (when jumped to) ─── */
+.message-highlight {
+  animation: highlight-msg 1.5s ease-out;
+}
+
+/* ─── Media Viewer ─── */
+.media-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.2s ease-out;
+}
+.media-viewer-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.media-viewer-content img,
+.media-viewer-content video {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* ─── Contact Info Panel ─── */
+.contact-info-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  max-width: 380px;
+  height: 100%;
+  background: var(--wa-panel);
+  border-left: 1px solid var(--wa-border);
+  z-index: 30;
+  overflow-y: auto;
+  animation: slideFromRight 0.25s ease-out;
+}
+
+/* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -72,12 +259,89 @@ audio::-webkit-media-controls-panel {
   background: transparent;
 }
 
-/* Animations */
+/* ─── Keyframes ─── */
 @keyframes slideUp {
   from { transform: translateY(10px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+@keyframes slideFromRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideLeft {
+  0%, 100% { transform: translateX(0); opacity: 1; }
+  50% { transform: translateX(-8px); opacity: 0.6; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+@keyframes highlight-msg {
+  0% { background: rgba(0, 168, 132, 0.3); }
+  100% { background: transparent; }
+}
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
 
 .animate-slide-up {
   animation: slideUp 0.2s ease-out;
+}
+
+/* ─── Waveform ─── */
+.voice-waveform {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+}
+.voice-waveform-bar {
+  width: 3px;
+  border-radius: 3px;
+  background: currentColor;
+  transition: height 0.1s;
+}
+
+/* ─── Emoji Picker Override ─── */
+.EmojiPickerReact {
+  --epr-bg-color: var(--wa-panel) !important;
+  --epr-text-color: var(--wa-text) !important;
+  --epr-search-border-color: var(--wa-border) !important;
+  --epr-category-label-bg-color: var(--wa-panel) !important;
+  --epr-hover-bg-color: var(--wa-input) !important;
+  border: 1px solid var(--wa-border) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+}
+
+/* ─── Poll styles ─── */
+.poll-option {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--wa-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.poll-option:hover {
+  border-color: #00a884;
+}
+.poll-option-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: rgba(0, 168, 132, 0.1);
+  transition: width 0.4s ease-out;
+  border-radius: 8px;
+}
+.poll-option.voted {
+  border-color: #00a884;
+  background: rgba(0, 168, 132, 0.05);
 }

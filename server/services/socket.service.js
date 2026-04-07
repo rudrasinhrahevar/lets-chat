@@ -8,6 +8,17 @@ import logger from '../utils/logger.js';
 
 const userSocketMap = new Map(); // userId -> Set<socketId>
 const callRooms = new Map();     // roomId -> { initiator, receiver, type }
+const chatSequences = new Map(); // chatId -> lastSequenceNumber
+
+const getNextSequence = async (chatId) => {
+  if (!chatSequences.has(chatId)) {
+    const lastMsg = await Message.findOne({ chat: chatId }).sort({ sequenceNumber: -1 }).select('sequenceNumber').lean();
+    chatSequences.set(chatId, lastMsg?.sequenceNumber || 0);
+  }
+  const next = chatSequences.get(chatId) + 1;
+  chatSequences.set(chatId, next);
+  return next;
+};
 
 export const initializeSocket = (io) => {
 
@@ -47,12 +58,31 @@ export const initializeSocket = (io) => {
     // MESSAGING
     // ─────────────────────────────────────────
     socket.on('message:send', async (data) => {
-      const { chatId, tempId, content, type, media, replyTo, isViewOnce, disappearAt, mentionedUsers } = data;
+      const { chatId, tempId, clientId, content, type, media, replyTo, isViewOnce, disappearAt, mentionedUsers, poll, contact, location, linkPreview } = data;
       try {
-        const message = await Message.create({
+        // Duplicate prevention via clientId
+        if (clientId) {
+          const existing = await Message.findOne({ clientId }).lean();
+          if (existing) {
+            socket.emit('message:sent', { tempId, messageId: existing._id });
+            return;
+          }
+        }
+
+        const sequenceNumber = await getNextSequence(chatId);
+
+        const messageData = {
           chat: chatId, sender: userId, type: type || 'text',
-          content, media, replyTo, isViewOnce, disappearAt, mentionedUsers
-        });
+          content, media, replyTo, isViewOnce, disappearAt, mentionedUsers,
+          sequenceNumber
+        };
+        if (clientId) messageData.clientId = clientId;
+        if (poll) messageData.poll = poll;
+        if (contact) messageData.contact = contact;
+        if (location) messageData.location = location;
+        if (linkPreview) messageData.linkPreview = linkPreview;
+
+        const message = await Message.create(messageData);
         await message.populate([
           { path: 'sender', select: 'name avatar' },
           { path: 'replyTo', populate: { path: 'sender', select: 'name' } }
@@ -162,13 +192,40 @@ export const initializeSocket = (io) => {
     });
 
     // ─────────────────────────────────────────
-    // TYPING
+    // POLL VOTING
+    // ─────────────────────────────────────────
+    socket.on('message:poll-vote', async ({ messageId, chatId, optionIndex }) => {
+      const message = await Message.findById(messageId);
+      if (!message || message.type !== 'poll' || !message.poll) return;
+      // Remove previous votes by this user
+      message.poll.options.forEach(opt => {
+        opt.votes = opt.votes.filter(v => v.toString() !== userId);
+      });
+      // Add vote to selected option
+      if (optionIndex >= 0 && optionIndex < message.poll.options.length) {
+        message.poll.options[optionIndex].votes.push(userId);
+      }
+      await message.save();
+      io.to(`chat:${chatId}`).emit('message:poll-voted', {
+        messageId,
+        poll: message.poll
+      });
+    });
+
+    // ─────────────────────────────────────────
+    // TYPING & RECORDING
     // ─────────────────────────────────────────
     socket.on('typing:start', ({ chatId }) => {
       socket.to(`chat:${chatId}`).emit('typing:start', { chatId, userId });
     });
     socket.on('typing:stop', ({ chatId }) => {
       socket.to(`chat:${chatId}`).emit('typing:stop', { chatId, userId });
+    });
+    socket.on('recording:start', ({ chatId }) => {
+      socket.to(`chat:${chatId}`).emit('recording:start', { chatId, userId });
+    });
+    socket.on('recording:stop', ({ chatId }) => {
+      socket.to(`chat:${chatId}`).emit('recording:stop', { chatId, userId });
     });
 
     // ─────────────────────────────────────────
@@ -261,6 +318,34 @@ export const initializeSocket = (io) => {
     socket.on('group:leave', ({ groupId }) => socket.leave(`chat:${groupId}`));
     socket.on('group:admin-action', ({ groupId, action, targetUserId }) => {
       io.to(`chat:${groupId}`).emit('group:updated', { action, targetUserId, by: userId });
+    });
+
+    // ─────────────────────────────────────────
+    // RECONNECT CATCH-UP
+    // ─────────────────────────────────────────
+    socket.on('sync:catchup', async ({ lastTimestamp }) => {
+      try {
+        const since = new Date(lastTimestamp || Date.now() - 30 * 60 * 1000); // default: last 30 min
+        const userChats = await Chat.find({ participants: userId }).select('_id');
+        const chatIds = userChats.map(c => c._id);
+
+        const missedMessages = await Message.find({
+          chat: { $in: chatIds },
+          createdAt: { $gt: since },
+          sender: { $ne: userId }
+        })
+          .populate('sender', 'name avatar')
+          .populate({ path: 'replyTo', populate: { path: 'sender', select: 'name' } })
+          .sort({ createdAt: 1 })
+          .limit(100)
+          .lean();
+
+        if (missedMessages.length > 0) {
+          socket.emit('sync:catchup-response', { messages: missedMessages });
+        }
+      } catch (err) {
+        logger.error(`Catchup failed for ${userId}: ${err.message}`);
+      }
     });
 
     // ─────────────────────────────────────────

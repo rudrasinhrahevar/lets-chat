@@ -25,11 +25,27 @@ export const getMessages = asyncHandler(async (req, res) => {
 });
 
 export const sendMessage = asyncHandler(async (req, res) => {
-  const { chatId, content, type, media, replyTo, isViewOnce, disappearAt, mentionedUsers } = req.body;
-  const message = await Message.create({
+  const { chatId, content, type, media, replyTo, isViewOnce, disappearAt, mentionedUsers, clientId, poll, contact, location, linkPreview } = req.body;
+
+  // Duplicate prevention via clientId
+  if (clientId) {
+    const existing = await Message.findOne({ clientId }).lean();
+    if (existing) {
+      return res.json({ success: true, data: existing, duplicate: true });
+    }
+  }
+
+  const messageData = {
     chat: chatId, sender: req.user._id, type: type || 'text',
     content, media, replyTo, isViewOnce, disappearAt, mentionedUsers
-  });
+  };
+  if (clientId) messageData.clientId = clientId;
+  if (poll) messageData.poll = poll;
+  if (contact) messageData.contact = contact;
+  if (location) messageData.location = location;
+  if (linkPreview) messageData.linkPreview = linkPreview;
+
+  const message = await Message.create(messageData);
   await message.populate([
     { path: 'sender', select: 'name avatar' },
     { path: 'replyTo', populate: { path: 'sender', select: 'name' } }
@@ -41,6 +57,61 @@ export const sendMessage = asyncHandler(async (req, res) => {
   }
 
   res.status(201).json({ success: true, data: message });
+});
+
+export const createPoll = asyncHandler(async (req, res) => {
+  const { chatId } = req.params;
+  const { question, options } = req.body;
+  if (!question || !options || options.length < 2) {
+    return res.status(400).json({ success: false, message: 'Poll requires a question and at least 2 options' });
+  }
+
+  const message = await Message.create({
+    chat: chatId,
+    sender: req.user._id,
+    type: 'poll',
+    content: question,
+    poll: {
+      question,
+      options: options.map(text => ({ text, votes: [] }))
+    }
+  });
+
+  await message.populate('sender', 'name avatar');
+  await Chat.findByIdAndUpdate(chatId, { lastMessage: message._id, updatedAt: new Date() });
+
+  if (global.io) {
+    global.io.to(`chat:${chatId}`).emit('message:receive', message);
+  }
+
+  res.status(201).json({ success: true, data: message });
+});
+
+export const votePoll = asyncHandler(async (req, res) => {
+  const { optionIndex } = req.body;
+  const message = await Message.findById(req.params.id);
+  if (!message || message.type !== 'poll') {
+    return res.status(404).json({ success: false, message: 'Poll not found' });
+  }
+
+  // Remove existing vote by this user
+  message.poll.options.forEach(opt => {
+    opt.votes = opt.votes.filter(v => v.toString() !== req.user._id.toString());
+  });
+
+  // Add new vote
+  if (optionIndex >= 0 && optionIndex < message.poll.options.length) {
+    message.poll.options[optionIndex].votes.push(req.user._id);
+  }
+  await message.save();
+
+  if (global.io) {
+    global.io.to(`chat:${message.chat}`).emit('message:poll-voted', {
+      messageId: message._id, poll: message.poll
+    });
+  }
+
+  res.json({ success: true, data: message.poll });
 });
 
 export const editMessage = asyncHandler(async (req, res) => {

@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/auth.middleware.js';
-import { getMessages, sendMessage, editMessage, deleteMessage, forwardMessage, starMessage, searchMessages, getStarredMessages, getChatMedia } from '../controllers/message.controller.js';
+import { getMessages, sendMessage, editMessage, deleteMessage, forwardMessage, starMessage, searchMessages, getStarredMessages, getChatMedia, createPoll, votePoll } from '../controllers/message.controller.js';
 
 const router = express.Router();
 router.use(protect);
@@ -10,7 +10,9 @@ router.get('/starred', getStarredMessages);
 router.get('/:chatId', getMessages);
 router.get('/:chatId/media', getChatMedia);
 router.post('/', sendMessage);
+router.post('/:chatId/poll', createPoll);
 router.put('/:id', editMessage);
+router.put('/:id/poll-vote', votePoll);
 router.delete('/:id', deleteMessage);
 router.post('/:id/forward', forwardMessage);
 router.post('/:id/star', starMessage);

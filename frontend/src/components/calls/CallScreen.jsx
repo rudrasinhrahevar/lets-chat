@@ -37,10 +37,16 @@ export default function CallScreen() {
   useEffect(() => {
     if (!socket || !activeCall?.roomId) return;
 
+    const roomId = activeCall.roomId;
+    const isInitiator = activeCall.isInitiator;
+    let cleanupFn = null;
+    let cancelled = false;
+
     const setupWebRTC = async () => {
       try {
         const constraints = isVideo ? { video: true, audio: true } : { audio: true };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
@@ -65,10 +71,7 @@ export default function CallScreen() {
 
         pc.onicecandidate = (e) => {
           if (e.candidate) {
-            socket.emit('webrtc:ice-candidate', {
-              roomId: activeCall.roomId,
-              candidate: e.candidate
-            });
+            socket.emit('webrtc:ice-candidate', { roomId, candidate: e.candidate });
           }
         };
 
@@ -81,14 +84,22 @@ export default function CallScreen() {
 
         // Signaling listeners
         const handleOffer = async ({ offer }) => {
-          await pc.setRemoteDescription(new RTCSessionDescription(offer));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          socket.emit('webrtc:answer', { roomId: activeCall.roomId, answer });
+          try {
+            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            socket.emit('webrtc:answer', { roomId, answer });
+          } catch (err) {
+            console.error('Handle offer failed:', err);
+          }
         };
 
         const handleAnswer = async ({ answer }) => {
-          await pc.setRemoteDescription(new RTCSessionDescription(answer));
+          try {
+            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+          } catch (err) {
+            console.error('Handle answer failed:', err);
+          }
         };
 
         const handleCandidate = async ({ candidate }) => {
@@ -101,11 +112,11 @@ export default function CallScreen() {
 
         // If initiator — wait for the receiver to finish mounting their peer connection
         const handleWebrtcReady = async () => {
-          if (activeCall?.isInitiator) {
+          if (isInitiator) {
             try {
               const offer = await pc.createOffer();
               await pc.setLocalDescription(offer);
-              socket.emit('webrtc:offer', { roomId: activeCall.roomId, offer });
+              socket.emit('webrtc:offer', { roomId, offer });
             } catch (err) {
               console.error('Offer failed:', err);
               toast.error('Could not start call');
@@ -117,11 +128,11 @@ export default function CallScreen() {
         socket.on('webrtc:ready', handleWebrtcReady);
 
         // If receiver — notify the initiator that our PEER is fully bound
-        if (!activeCall?.isInitiator) {
-          socket.emit('webrtc:ready', { roomId: activeCall.roomId });
+        if (!isInitiator) {
+          socket.emit('webrtc:ready', { roomId });
         }
 
-        return () => {
+        cleanupFn = () => {
           socket.off('webrtc:offer', handleOffer);
           socket.off('webrtc:answer', handleAnswer);
           socket.off('webrtc:ice-candidate', handleCandidate);
@@ -129,15 +140,18 @@ export default function CallScreen() {
         };
       } catch (err) {
         console.error('Media access error:', err);
-        toast.error('Camera/microphone access denied');
-        endCall();
+        if (!cancelled) {
+          toast.error('Camera/microphone access denied');
+          endCall();
+        }
       }
     };
 
-    const cleanup = setupWebRTC();
+    setupWebRTC();
 
     return () => {
-      cleanup.then(fn => fn && fn());
+      cancelled = true;
+      cleanupFn?.();
       streamRef.current?.getTracks().forEach(t => t.stop());
       pcRef.current?.close();
     };

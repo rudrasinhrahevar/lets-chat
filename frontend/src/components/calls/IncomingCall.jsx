@@ -5,7 +5,7 @@ export default function IncomingCall() {
   const { incomingCall, setActiveCall, clearCall } = useCallStore();
   const socket = useSocket();
   if (!incomingCall) return null;
-  const accept = () => { socket?.emit('call:accept', { roomId: incomingCall.roomId }); setActiveCall({ ...incomingCall, status: 'ongoing' }); };
+  const accept = () => { socket?.emit('call:accept', { roomId: incomingCall.roomId }); setActiveCall({ ...incomingCall, status: 'ongoing', isInitiator: false }); };
   const reject = () => { socket?.emit('call:reject', { roomId: incomingCall.roomId }); clearCall(); };
 
   return (

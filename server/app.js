@@ -19,6 +19,7 @@ import callRoutes from './routes/call.routes.js';
 import mediaRoutes from './routes/media.routes.js';
 import broadcastRoutes from './routes/broadcast.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import { cacheMiddleware } from './middleware/cache.middleware.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -33,8 +34,19 @@ app.use(mongoSanitize());
 app.use(xss());
 app.use(compression());
 app.use(morgan('dev'));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Cache headers for API responses
+app.use('/api/', (req, res, next) => {
+  if (req.method === 'GET') {
+    res.set('Cache-Control', 'private, max-age=0, must-revalidate');
+    res.set('Vary', 'Authorization');
+  } else {
+    res.set('Cache-Control', 'no-store');
+  }
+  next();
+});
 app.use(cookieParser());
 
 app.use('/api/', globalLimiter);
@@ -45,6 +57,10 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/calls', callRoutes);
+
+// Apply response caching to frequently-hit read endpoints
+app.get('/api/chats', cacheMiddleware(15));
+app.get('/api/calls/history', cacheMiddleware(30));
 app.use('/api/media', mediaRoutes);
 app.use('/api/broadcasts', broadcastRoutes);
 app.use('/api/admin', adminRoutes);

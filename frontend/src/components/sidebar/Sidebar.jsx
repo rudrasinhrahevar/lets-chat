@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { List as VirtualList } from 'react-window';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { useAuthStore } from 'store/useAuthStore';
 import { useChatStore } from 'store/useChatStore';
 import { useTheme } from 'contexts/ThemeContext';
@@ -154,19 +156,51 @@ export default function Sidebar({ view, onViewChange }) {
 
       {/* Content panels */}
       {view === 'chats' && (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden">
           {filteredChats.length === 0 ? (
             <div className="text-center text-wa-text-sec text-sm py-12">
               {search ? 'No chats found' : 'No conversations yet.\nClick the pencil icon to start one.'}
             </div>
-          ) : filteredChats.map(chat => (
-            <ChatListItem
-              key={chat._id}
-              chat={chat}
-              isActive={activeChat?._id === chat._id}
-              onClick={() => setActiveChat(chat)}
-            />
-          ))}
+          ) : filteredChats.length < 20 ? (
+            /* Small lists: render directly (no virtualization overhead) */
+            <div className="overflow-y-auto h-full">
+              {filteredChats.map(chat => (
+                <ChatListItem
+                  key={chat._id}
+                  chat={chat}
+                  isActive={activeChat?._id === chat._id}
+                  onClick={() => setActiveChat(chat)}
+                />
+              ))}
+            </div>
+          ) : (
+            /* Large lists: virtualized with react-window */
+            <AutoSizer>
+              {({ height, width }) => (
+                <VirtualList
+                  height={height}
+                  width={width}
+                  itemCount={filteredChats.length}
+                  itemSize={72}
+                  overscanCount={5}
+                >
+                  {({ index, style }) => {
+                    const chat = filteredChats[index];
+                    return (
+                      <div style={style}>
+                        <ChatListItem
+                          key={chat._id}
+                          chat={chat}
+                          isActive={activeChat?._id === chat._id}
+                          onClick={() => setActiveChat(chat)}
+                        />
+                      </div>
+                    );
+                  }}
+                </VirtualList>
+              )}
+            </AutoSizer>
+          )}
         </div>
       )}
 

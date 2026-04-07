@@ -1,41 +1,54 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
-import { useAuth } from "../../contexts/AuthContext";
+import toast from "react-hot-toast";
+import { useAuthStore } from "../../store/useAuthStore";
 
 export default function Register() {
   const navigate = useNavigate();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const { currentUser, register, setError } = useAuth();
+  const { register, isLoading, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    if (currentUser) {
+    if (isAuthenticated) {
       navigate("/");
     }
-  }, [currentUser, navigate]);
+  }, [isAuthenticated, navigate]);
 
   async function handleFormSubmit(e) {
     e.preventDefault();
 
-    if (password !== confirmPassword) {
-      return setError("Passwords do not match");
-    }
-
     try {
       setError("");
-      setLoading(true);
-      await register(email, password);
-      navigate("/profile");
-    } catch (e) {
-      setError("Failed to register");
-    }
+      
+      if (!name || !email || !password || !confirmPassword) {
+        setError("Please fill in all fields");
+        return;
+      }
 
-    setLoading(false);
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters");
+        return;
+      }
+
+      await register(name, email, password);
+      toast.success("Account created! Check your email for OTP verification.");
+      navigate("/verify-otp");
+    } catch (e) {
+      const errorMsg = e.response?.data?.message || "Failed to register";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    }
   }
 
   return (
@@ -64,6 +77,20 @@ export default function Register() {
         <form className="mt-8 space-y-5" onSubmit={handleFormSubmit}>
           <div className="space-y-4">
             <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ml-1" htmlFor="name">Full Name</label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                required
+                className="input-field w-full"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ml-1" htmlFor="email-address">Email address</label>
               <input
                 id="email-address"
@@ -73,6 +100,7 @@ export default function Register() {
                 required
                 className="input-field w-full"
                 placeholder="you@example.com"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
@@ -86,6 +114,7 @@ export default function Register() {
                 required
                 className="input-field w-full"
                 placeholder="••••••••"
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
@@ -99,18 +128,25 @@ export default function Register() {
                 required
                 className="input-field w-full"
                 placeholder="••••••••"
+                value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
             </div>
           </div>
 
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
           <div className="pt-2">
             <button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className="w-full btn-primary"
             >
-              Sign up
+              {isLoading ? "Creating account..." : "Sign up"}
             </button>
           </div>
           

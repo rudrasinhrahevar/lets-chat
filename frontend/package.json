@@ -27,6 +27,8 @@
     "react-intersection-observer": "^10.0.3",
     "react-router-dom": "^6.3.0",
     "react-scripts": "5.0.1",
+    "react-virtualized-auto-sizer": "^2.0.3",
+    "react-window": "^2.2.7",
     "recharts": "^3.8.1",
     "simple-peer": "^9.11.1",
     "socket.io-client": "^4.8.3",

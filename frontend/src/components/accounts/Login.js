@@ -1,36 +1,40 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
-import { useAuth } from "../../contexts/AuthContext";
+import toast from "react-hot-toast";
+import { useAuthStore } from "../../store/useAuthStore";
 
 export default function Login() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const { currentUser, login, setError } = useAuth();
+  const [error, setError] = useState("");
+  
+  const { login, isLoading, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    if (currentUser) {
+    if (isAuthenticated) {
       navigate("/");
     }
-  }, [currentUser, navigate]);
+  }, [isAuthenticated, navigate]);
 
   async function handleFormSubmit(e) {
     e.preventDefault();
 
     try {
       setError("");
-      setLoading(true);
+      if (!email || !password) {
+        setError("Please fill in all fields");
+        return;
+      }
       await login(email, password);
+      toast.success("Login successful!");
       navigate("/");
     } catch (e) {
-      setError("Failed to login");
+      const errorMsg = e.response?.data?.message || "Failed to login";
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
-
-    setLoading(false);
   }
 
   return (
@@ -68,6 +72,7 @@ export default function Login() {
                 required
                 className="input-field w-full"
                 placeholder="you@example.com"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
@@ -81,18 +86,25 @@ export default function Login() {
                 required
                 className="input-field w-full"
                 placeholder="••••••••"
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </div>
 
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
           <div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className="w-full btn-primary"
             >
-              Sign in
+              {isLoading ? "Signing in..." : "Sign in"}
             </button>
           </div>
           
