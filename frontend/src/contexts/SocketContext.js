@@ -53,6 +53,13 @@ export function SocketProvider({ children }) {
       if (lastMessageTimeRef.current) {
         socket.emit('sync:catchup', { lastTimestamp: lastMessageTimeRef.current });
       }
+
+      // Rejoin active call if one exists (page refresh scenario)
+      const persistedCall = useCallStore.getState().activeCall;
+      if (persistedCall?.roomId) {
+        console.log('[Call] Rejoining call room:', persistedCall.roomId);
+        socket.emit('call:rejoin', { roomId: persistedCall.roomId });
+      }
     });
 
     socket.on('disconnect', (reason) => {

@@ -5,8 +5,32 @@ import { useSocket } from 'contexts/SocketContext';
 import { formatDuration } from 'utils/formatTime';
 import toast from 'react-hot-toast';
 
+// Free TURN servers for NAT traversal (Metered.ca public relays)
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun.relay.metered.ca:80' },
+  {
+    urls: 'turn:a.relay.metered.ca:80',
+    username: 'e8dd65b92f6dfbc5e9277f48',
+    credential: '4F5qFMTpQe/9gdkb',
+  },
+  {
+    urls: 'turn:a.relay.metered.ca:443',
+    username: 'e8dd65b92f6dfbc5e9277f48',
+    credential: '4F5qFMTpQe/9gdkb',
+  },
+  {
+    urls: 'turn:a.relay.metered.ca:443?transport=tcp',
+    username: 'e8dd65b92f6dfbc5e9277f48',
+    credential: '4F5qFMTpQe/9gdkb',
+  },
+];
+
 export default function CallScreen() {
   const { activeCall, clearCall } = useCallStore();
+  const { chats, activeChat } = useChatStore();
   const socket = useSocket();
   const [duration, setDuration] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -17,12 +41,17 @@ export default function CallScreen() {
   const remoteVideoRef = useRef(null);
   const pcRef = useRef(null);
   const streamRef = useRef(null);
+  const remoteStreamRef = useRef(null); // Buffer for remote stream
+  const iceCandidateBuffer = useRef([]); // Buffer ICE candidates before remote description
   const isVideo = activeCall?.callType === 'video';
 
   const endCall = useCallback(() => {
     socket?.emit('call:end', { roomId: activeCall?.roomId });
     streamRef.current?.getTracks().forEach(t => t.stop());
     pcRef.current?.close();
+    pcRef.current = null;
+    streamRef.current = null;
+    remoteStreamRef.current = null;
     clearCall();
   }, [socket, activeCall, clearCall]);
 
@@ -33,84 +62,149 @@ export default function CallScreen() {
     return () => clearInterval(interval);
   }, [connected]);
 
-  // WebRTC setup
+  // Apply remote stream to video element when ref becomes available
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStreamRef.current) {
+      remoteVideoRef.current.srcObject = remoteStreamRef.current;
+    }
+  });
+
+  // ─── WebRTC Setup ───
   useEffect(() => {
     if (!socket || !activeCall?.roomId) return;
 
     const roomId = activeCall.roomId;
     const isInitiator = activeCall.isInitiator;
-    let cleanupFn = null;
     let cancelled = false;
+    const cleanupHandlers = [];
 
     const setupWebRTC = async () => {
       try {
-        const constraints = isVideo ? { video: true, audio: true } : { audio: true };
+        // 1. Get media stream
+        const constraints = isVideo
+          ? { video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true }
+          : { audio: true };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
+
+        // Set local video
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
 
-        const pc = new RTCPeerConnection({
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-          ]
-        });
+        // 2. Create PeerConnection
+        const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         pcRef.current = pc;
 
-        stream.getTracks().forEach(t => pc.addTrack(t, stream));
+        // 3. Add local tracks to PeerConnection
+        stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-        pc.ontrack = (e) => {
+        // 4. Handle remote tracks
+        pc.ontrack = (event) => {
+          const [remoteStream] = event.streams;
+          remoteStreamRef.current = remoteStream;
           setConnected(true);
+          // Apply immediately if ref is available
           if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = e.streams[0];
+            remoteVideoRef.current.srcObject = remoteStream;
           }
         };
 
-        pc.onicecandidate = (e) => {
-          if (e.candidate) {
-            socket.emit('webrtc:ice-candidate', { roomId, candidate: e.candidate });
+        // 5. Handle ICE candidates — send to other peer
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            socket.emit('webrtc:ice-candidate', { roomId, candidate: event.candidate });
           }
         };
 
+        // 6. Connection state monitoring
         pc.onconnectionstatechange = () => {
-          if (pc.connectionState === 'connected') setConnected(true);
-          if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
+          const state = pc.connectionState;
+          if (state === 'connected') {
+            setConnected(true);
+          } else if (state === 'disconnected') {
             setConnected(false);
+            // Try ICE restart after brief disconnect
+            setTimeout(() => {
+              if (pcRef.current && pcRef.current.connectionState === 'disconnected') {
+                console.log('[WebRTC] Attempting ICE restart...');
+                pcRef.current.restartIce();
+              }
+            }, 3000);
+          } else if (state === 'failed') {
+            setConnected(false);
+            toast.error('Call connection failed');
+            endCall();
           }
         };
 
-        // Signaling listeners
+        pc.oniceconnectionstatechange = () => {
+          if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+            setConnected(true);
+          }
+        };
+
+        // ─── Helper: Flush buffered ICE candidates ───
+        const flushIceCandidates = async () => {
+          while (iceCandidateBuffer.current.length > 0) {
+            const candidate = iceCandidateBuffer.current.shift();
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+              console.warn('[WebRTC] Failed to add buffered ICE candidate:', err);
+            }
+          }
+        };
+
+        // ─── Signaling Handlers ───
+
+        // Handle incoming offer (receiver side)
         const handleOffer = async ({ offer }) => {
           try {
+            if (pc.signalingState !== 'stable') {
+              console.warn('[WebRTC] Received offer in non-stable state:', pc.signalingState);
+              return;
+            }
             await pc.setRemoteDescription(new RTCSessionDescription(offer));
+            await flushIceCandidates();
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             socket.emit('webrtc:answer', { roomId, answer });
           } catch (err) {
-            console.error('Handle offer failed:', err);
+            console.error('[WebRTC] Handle offer failed:', err);
           }
         };
 
+        // Handle incoming answer (initiator side)
         const handleAnswer = async ({ answer }) => {
           try {
+            if (pc.signalingState !== 'have-local-offer') {
+              console.warn('[WebRTC] Received answer in wrong state:', pc.signalingState);
+              return;
+            }
             await pc.setRemoteDescription(new RTCSessionDescription(answer));
+            await flushIceCandidates();
           } catch (err) {
-            console.error('Handle answer failed:', err);
+            console.error('[WebRTC] Handle answer failed:', err);
           }
         };
 
+        // Handle incoming ICE candidate
         const handleCandidate = async ({ candidate }) => {
-          try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch {}
+          try {
+            if (pc.remoteDescription && pc.remoteDescription.type) {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            } else {
+              // Buffer until remote description is set
+              iceCandidateBuffer.current.push(candidate);
+            }
+          } catch (err) {
+            console.warn('[WebRTC] Add ICE candidate failed:', err);
+          }
         };
 
-        socket.on('webrtc:offer', handleOffer);
-        socket.on('webrtc:answer', handleAnswer);
-        socket.on('webrtc:ice-candidate', handleCandidate);
-
-        // If initiator — wait for the receiver to finish mounting their peer connection
+        // Handle webrtc:ready — the other peer's PeerConnection is ready
         const handleWebrtcReady = async () => {
           if (isInitiator) {
             try {
@@ -118,28 +212,54 @@ export default function CallScreen() {
               await pc.setLocalDescription(offer);
               socket.emit('webrtc:offer', { roomId, offer });
             } catch (err) {
-              console.error('Offer failed:', err);
+              console.error('[WebRTC] Create offer failed:', err);
               toast.error('Could not start call');
               endCall();
             }
           }
         };
 
+        // Handle renegotiate — other peer refreshed and rejoined
+        const handleRenegotiate = async () => {
+          try {
+            // Reset ICE buffer for fresh negotiation
+            iceCandidateBuffer.current = [];
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('webrtc:offer', { roomId, offer });
+          } catch (err) {
+            console.error('[WebRTC] Renegotiate failed:', err);
+          }
+        };
+
+        // Register all socket listeners
+        socket.on('webrtc:offer', handleOffer);
+        socket.on('webrtc:answer', handleAnswer);
+        socket.on('webrtc:ice-candidate', handleCandidate);
         socket.on('webrtc:ready', handleWebrtcReady);
+        socket.on('webrtc:renegotiate', handleRenegotiate);
 
-        // If receiver — notify the initiator that our PEER is fully bound
-        if (!isInitiator) {
-          socket.emit('webrtc:ready', { roomId });
-        }
-
-        cleanupFn = () => {
+        cleanupHandlers.push(() => {
           socket.off('webrtc:offer', handleOffer);
           socket.off('webrtc:answer', handleAnswer);
           socket.off('webrtc:ice-candidate', handleCandidate);
           socket.off('webrtc:ready', handleWebrtcReady);
-        };
+          socket.off('webrtc:renegotiate', handleRenegotiate);
+        });
+
+        // ─── Start Negotiation ───
+        // Both sides need time for PeerConnection to be created.
+        // Receiver signals "ready" first, initiator waits for it.
+        if (!isInitiator) {
+          // Small delay to ensure socket listeners are registered on the initiator side
+          setTimeout(() => {
+            if (!cancelled) {
+              socket.emit('webrtc:ready', { roomId });
+            }
+          }, 500);
+        }
       } catch (err) {
-        console.error('Media access error:', err);
+        console.error('[WebRTC] Media access error:', err);
         if (!cancelled) {
           toast.error('Camera/microphone access denied');
           endCall();
@@ -149,21 +269,33 @@ export default function CallScreen() {
 
     setupWebRTC();
 
-    return () => {
-      cancelled = true;
-      cleanupFn?.();
+    // Handle call:ended from remote
+    const handleCallEnded = () => {
       streamRef.current?.getTracks().forEach(t => t.stop());
       pcRef.current?.close();
+      pcRef.current = null;
+      clearCall();
+    };
+    socket.on('call:ended', handleCallEnded);
+    cleanupHandlers.push(() => socket.off('call:ended', handleCallEnded));
+
+    return () => {
+      cancelled = true;
+      cleanupHandlers.forEach(fn => fn());
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      if (pcRef.current) {
+        pcRef.current.close();
+        pcRef.current = null;
+      }
     };
     // eslint-disable-next-line
   }, [socket, activeCall?.roomId]);
 
+  // ─── Controls ───
   const toggleMute = () => {
     const track = streamRef.current?.getAudioTracks()[0];
     if (track) { track.enabled = !track.enabled; setMuted(!track.enabled); }
   };
-
-  const { activeChat, chats } = useChatStore();
 
   const toggleCamera = () => {
     const track = streamRef.current?.getVideoTracks()[0];
@@ -192,6 +324,17 @@ export default function CallScreen() {
             playsInline
             className="w-full h-full object-cover"
           />
+          {!connected && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#0b141a]">
+              <div className="text-center">
+                <div className="w-28 h-28 rounded-full bg-wa-teal/20 flex items-center justify-center mx-auto mb-4 border-4 border-wa-teal/30"
+                  style={{ animation: 'pulse 2s infinite' }}>
+                  <span className="text-5xl text-wa-teal font-bold">{callerName?.[0]?.toUpperCase()}</span>
+                </div>
+                <p className="text-white/60 mt-2">Connecting video...</p>
+              </div>
+            </div>
+          )}
           {/* Local preview */}
           <video
             ref={localVideoRef}
@@ -234,8 +377,7 @@ export default function CallScreen() {
             </p>
           </div>
           {/* Hidden audio element for voice call */}
-          <video ref={remoteVideoRef} autoPlay playsInline className="hidden" />
-          <video ref={localVideoRef} autoPlay playsInline muted className="hidden" />
+          <audio ref={remoteVideoRef} autoPlay playsInline className="hidden" />
         </div>
       )}
 

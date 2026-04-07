@@ -76,7 +76,7 @@ export default function ChatHeaderBar({ onOpenContactInfo, onOpenSearch }) {
 
   const handleBlock = async () => {
     try {
-      await api.post(`/users/${otherUser._id}/block`);
+      await api.post(`/users/block/${otherUser._id}`);
       toast.success('User blocked');
     } catch { toast.error('Failed to block'); }
     setShowMenu(false);

@@ -278,6 +278,31 @@ export const initializeSocket = (io) => {
       callRooms.delete(roomId);
     });
 
+    // Rejoin call after page refresh
+    socket.on('call:rejoin', async ({ roomId }) => {
+      const room = callRooms.get(roomId);
+      if (!room) {
+        // Check if the call exists in DB and is ongoing
+        const dbCall = await Call.findOne({ roomId, status: 'ongoing' });
+        if (dbCall) {
+          callRooms.set(roomId, {
+            initiator: dbCall.initiator.toString(),
+            receiver: dbCall.participants.find(p => p.toString() !== dbCall.initiator.toString())?.toString(),
+            chatId: dbCall.chat?.toString(),
+            callType: dbCall.type,
+            startedAt: dbCall.startedAt
+          });
+        } else {
+          socket.emit('call:ended', { roomId });
+          return;
+        }
+      }
+      socket.join(roomId);
+      // Notify the other peer to re-negotiate
+      socket.to(roomId).emit('webrtc:renegotiate', { from: userId, roomId });
+      logger.info(`User ${userId} rejoined call room ${roomId}`);
+    });
+
     // WebRTC signaling
     socket.on('webrtc:ready', ({ roomId }) => socket.to(roomId).emit('webrtc:ready', { from: userId }));
     socket.on('webrtc:offer', ({ roomId, offer }) => socket.to(roomId).emit('webrtc:offer', { offer, from: userId }));

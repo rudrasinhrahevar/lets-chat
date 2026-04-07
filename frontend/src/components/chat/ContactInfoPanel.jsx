@@ -38,7 +38,7 @@ export default function ContactInfoPanel({ onClose }) {
   const handleBlock = async () => {
     if (!otherUser) return;
     try {
-      await api.post(`/users/${otherUser._id}/block`);
+      await api.post(`/users/block/${otherUser._id}`);
       toast.success('User blocked');
     } catch { toast.error('Failed to block'); }
   };
