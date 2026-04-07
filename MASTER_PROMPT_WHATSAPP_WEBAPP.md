@@ -1,4 +1,4 @@
-# 🚀 MASTER PROMPT — COMPLETE WHATSAPP-LIKE WEB APP
+Pus# 🚀 MASTER PROMPT — COMPLETE WHATSAPP-LIKE WEB APP
 #
 # Full-Stack | React + Node.js + Socket.io + MongoDB | User Panel + Admin Panel
 ### Deployable on Free Tier (Render + Vercel + MongoDB Atlas + Cloudinary)
