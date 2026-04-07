@@ -8,7 +8,7 @@ const SocketContext = createContext(null);
 
 export function SocketProvider({ children }) {
   const socketRef = useRef(null);
-  const [socketReady, setSocketReady] = useState(false);
+  const [, setSocketReady] = useState(false);
   const { accessToken, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
