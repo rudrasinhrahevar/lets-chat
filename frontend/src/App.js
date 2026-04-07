@@ -1,44 +1,34 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-
-import { AuthProvider } from "./contexts/AuthContext";
-import Register from "./components/accounts/Register";
-import Login from "./components/accounts/Login";
-import Profile from "./components/accounts/Profile";
-import WithPrivateRoute from "./utils/WithPrivateRoute";
-import ChatLayout from "./components/layouts/ChatLayout";
-import Header from "./components/layouts/Header";
-import ErrorMessage from "./components/layouts/ErrorMessage";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { SocketProvider } from 'contexts/SocketContext';
+import { ThemeProvider } from 'contexts/ThemeContext';
+import { useAuthStore } from 'store/useAuthStore';
+import ProtectedRoute from 'routes/ProtectedRoute';
+import AdminRoute from 'routes/AdminRoute';
+import Login from 'pages/Auth/Login';
+import Register from 'pages/Auth/Register';
+import OTPVerify from 'pages/Auth/OTPVerify';
+import ForgotPassword from 'pages/Auth/ForgotPassword';
+import AppLayout from 'pages/App/AppLayout';
+import AdminPanel from 'pages/Admin/AdminPanel';
 
 function App() {
+  const { isAuthenticated } = useAuthStore();
   return (
-    <AuthProvider>
-      <Router>
-        <Header />
-        <ErrorMessage />
-        <Routes>
-          <Route exact path="/register" element={<Register />} />
-          <Route exact path="/login" element={<Login />} />
-          <Route
-            exact
-            path="/profile"
-            element={
-              <WithPrivateRoute>
-                <Profile />
-              </WithPrivateRoute>
-            }
-          />
-          <Route
-            exact
-            path="/"
-            element={
-              <WithPrivateRoute>
-                <ChatLayout />
-              </WithPrivateRoute>
-            }
-          />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <ThemeProvider>
+      <BrowserRouter>
+        <SocketProvider>
+          <Routes>
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
+            <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <Register />} />
+            <Route path="/verify-otp" element={<OTPVerify />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+            <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </SocketProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

@@ -2,7 +2,7 @@ import axios from "axios";
 import auth from "../config/firebase";
 import { io } from "socket.io-client";
 
-const baseURL = "http://localhost:3001/api";
+const baseURL = (process.env.REACT_APP_BACKEND_URL || "http://localhost:3001") + "/api";
 
 const getUserToken = async () => {
   const user = auth.currentUser;
@@ -13,7 +13,7 @@ const getUserToken = async () => {
 export const initiateSocketConnection = async () => {
   const token = await getUserToken();
 
-  const socket = io("http://localhost:3001", {
+  const socket = io(process.env.REACT_APP_BACKEND_URL || "http://localhost:3001", {
     auth: {
       token,
     },
@@ -121,6 +121,37 @@ export const sendMessage = async (messageBody) => {
     const res = await axios.post(`${baseURL}/message`, messageBody, header);
     return res.data;
   } catch (e) {
+    console.error('sendMessage error:', e);
+    console.error('Error response:', e.response?.data);
+    throw e; // Re-throw the error so it can be caught by the caller
+  }
+};
+
+export const markMessagesAsRead = async (chatRoomId, userId) => {
+  const header = await createHeader();
+
+  try {
+    const res = await axios.post(`${baseURL}/message/mark-read`, { chatRoomId, userId }, header);
+    return res.data;
+  } catch (e) {
     console.error(e);
   }
+};
+
+export const chatRoomService = {
+  getChatRooms,
+  getChatRoomOfUsers,
+  createChatRoom,
+};
+
+export const userService = {
+  getAllUsers,
+  getUser,
+  getUsers,
+};
+
+export const chatMessageService = {
+  getMessagesOfChatRoom,
+  sendMessage,
+  markMessagesAsRead,
 };

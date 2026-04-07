@@ -1,0 +1,14 @@
+export const MESSAGE_TYPES = ['text', 'image', 'video', 'audio', 'voice', 'document', 'contact', 'location', 'sticker', 'gif', 'system'];
+export const CHAT_TYPES = ['private', 'group', 'broadcast', 'community'];
+export const USER_ROLES = ['user', 'admin', 'agent'];
+export const CALL_TYPES = ['audio', 'video'];
+export const CALL_STATUSES = ['ringing', 'ongoing', 'ended', 'missed', 'rejected'];
+export const DISAPPEARING_OPTIONS = ['off', '24h', '7d', '90d'];
+export const PRIVACY_OPTIONS = ['everyone', 'contacts', 'nobody'];
+export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+export const MAX_GROUP_MEMBERS = 256;
+export const STATUS_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24h
+export const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 min
+export const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 min
+export const MAX_LOGIN_ATTEMPTS = 5;
+export const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 min

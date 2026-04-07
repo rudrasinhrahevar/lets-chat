@@ -2,32 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
-.emoji-picker-react {
-  @apply bg-white dark:bg-gray-800
-  }
+:root {
+  /* Light theme */
+  --wa-bg: #efeae2;
+  --wa-panel: #ffffff;
+  --wa-input: #f0f2f5;
+  --wa-border: #e9edef;
+  --wa-text: #111b21;
+  --wa-text-sec: #667781;
+  --wa-icon: #54656f;
+  --wa-bubble: #d9fdd3;
+  --wa-bubble2: #ffffff;
+}
 
-  .emoji-picker-react .emoji-search {
-    @apply dark:bg-gray-800  dark:text-white dark:border-gray-700 dark:focus:border-sky-500
-    }
-  
-    .emoji-picker-react .emoji-categories  {
-      @apply dark:bg-gray-800;
-      }
+:root.dark {
+  /* Dark theme (WhatsApp Web style) */
+  --wa-bg: #0b141a;
+  --wa-panel: #111b21;
+  --wa-input: #202c33;
+  --wa-border: #222d34;
+  --wa-text: #e9edef;
+  --wa-text-sec: #8696a0;
+  --wa-icon: #aebac1;
+  --wa-bubble: #005c4b;
+  --wa-bubble2: #202c33;
+}
 
-      .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar {
-        @apply dark:bg-gray-800 w-5
-      }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-      .emoji-picker-react .emoji-categories button  {
-        @apply contrast-0
-        }
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', Helvetica Neue, Helvetica, Lucida Grande, Arial, Ubuntu, Cantarell, Fira Sans, sans-serif;
+  background: var(--wa-bg);
+  color: var(--wa-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-      .emoji-picker-react .emoji-scroll-wrapper .emoji-group::before {
-        @apply dark:bg-gray-800  dark:text-white
-      }
+#root {
+  height: 100%;
+}
 
-  @layer base {
-    body {
-      @apply bg-white dark:bg-gray-900;
-    }
-  }
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #374045;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4a5568;
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 168, 132, 0.3);
+}
+
+/* Audio player */
+audio::-webkit-media-controls-panel {
+  background: transparent;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.2s ease-out;
+}

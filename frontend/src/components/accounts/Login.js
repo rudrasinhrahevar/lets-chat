@@ -34,58 +34,76 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-4 text-3xl text-center tracking-tight font-light dark:text-white">
-            Login to your account
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-surface-50 dark:bg-gray-950">
+      
+      {/* Decorative Background Gradients */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-primary-400/20 dark:bg-primary-900/20 blur-3xl"></div>
+        <div className="absolute top-[20%] -right-[10%] w-[30%] h-[30%] rounded-full bg-primary-200/20 dark:bg-primary-800/10 blur-3xl"></div>
+      </div>
+
+      <div className="max-w-md w-full space-y-8 glass-panel p-10 rounded-3xl relative z-10 shadow-xl shadow-gray-200/40 dark:shadow-none">
+        
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30 mb-6">
+            <span className="text-white font-bold text-2xl">LC</span>
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Welcome back
           </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Please enter your details to sign in.
+          </p>
         </div>
+
         <form className="mt-8 space-y-6" onSubmit={handleFormSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="space-y-4">
             <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ml-1" htmlFor="email-address">Email address</label>
               <input
                 id="email-address"
                 name="email"
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 placeholder-gray-500 rounded-t-md bg-gray-50 border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                className="input-field w-full"
+                placeholder="you@example.com"
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ml-1" htmlFor="password">Password</label>
               <input
                 id="password"
                 name="password"
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 placeholder-gray-500 rounded-t-md bg-gray-50 border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                className="input-field w-full"
+                placeholder="••••••••"
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </div>
+
           <div>
             <button
               type="submit"
               disabled={loading}
-              className=" w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-sky-800 hover:bg-sky-900"
+              className="w-full btn-primary"
             >
-              Login
+              Sign in
             </button>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <Link
-                to="/register"
-                className="text-blue-600 hover:underline dark:text-blue-500"
-              >
-                Don't have an account? Register
-              </Link>
-            </div>
+          
+          <div className="text-center mt-6">
+            <span className="text-sm text-gray-500 dark:text-gray-400">Don't have an account? </span>
+            <Link
+              to="/register"
+              className="text-sm font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-500 hover:underline transition-all"
+            >
+              Sign up
+            </Link>
           </div>
         </form>
       </div>
