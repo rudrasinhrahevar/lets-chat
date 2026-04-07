@@ -21,6 +21,7 @@ import broadcastRoutes from './routes/broadcast.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(helmet({ crossOriginEmbedderPolicy: false, contentSecurityPolicy: false }));
 app.use(cors({
