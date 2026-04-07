@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { List as VirtualList } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { useAuthStore } from 'store/useAuthStore';

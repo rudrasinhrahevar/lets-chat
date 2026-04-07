@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from 'store/useAuthStore';
 import { useChatStore } from 'store/useChatStore';
 import api from 'services/api';
-import { formatLastSeen, formatFileSize } from 'utils/formatTime';
+import { formatLastSeen } from 'utils/formatTime';
 import toast from 'react-hot-toast';
 
 export default function ContactInfoPanel({ onClose }) {
@@ -44,8 +44,6 @@ export default function ContactInfoPanel({ onClose }) {
   };
 
   const images = mediaItems.filter(m => m.type === 'image');
-  const videos = mediaItems.filter(m => m.type === 'video');
-  const docs = mediaItems.filter(m => m.type === 'document');
 
   return (
     <div className="contact-info-panel">

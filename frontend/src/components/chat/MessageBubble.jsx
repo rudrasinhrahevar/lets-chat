@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useAuthStore } from 'store/useAuthStore';
 import { useSocket } from 'contexts/SocketContext';
 import { formatTime, formatFileSize, formatDuration } from 'utils/formatTime';
