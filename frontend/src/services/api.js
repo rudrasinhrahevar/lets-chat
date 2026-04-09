@@ -23,7 +23,7 @@ const resolveBaseURL = () => {
     }
   }
 
-  return 'http://localhost:3001/api';
+  return 'https://lets-chat-dio5.onrender.com/api';
 };
 
 const api = axios.create({
