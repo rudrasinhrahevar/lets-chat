@@ -37,7 +37,13 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: [process.env.CLIENT_URL || 'http://localhost:3000', 'http://localhost:5173'],
+    origin: [
+      process.env.CLIENT_URL,
+      process.env.FRONTEND_URL,
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://lets-chat-delta.vercel.app'
+    ].filter(Boolean),
     methods: ['GET', 'POST'],
     credentials: true
   },

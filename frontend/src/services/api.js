@@ -1,8 +1,33 @@
 import axios from 'axios';
 import { useAuthStore } from 'store/useAuthStore';
 
+const resolveBaseURL = () => {
+  const fromEnv = process.env.REACT_APP_API_URL;
+  if (fromEnv) return fromEnv;
+
+  // CRA bakes env at build time; on Vercel a missing REACT_APP_API_URL would
+  // incorrectly fall back to localhost from users' browsers.
+  const isBrowser = typeof window !== 'undefined';
+  if (isBrowser) {
+    const host = window.location.hostname;
+    const isLocal = host === 'localhost' || host === '127.0.0.1';
+    if (!isLocal) {
+      // Prefer a same-origin proxy if configured (e.g. Vercel rewrite),
+      // but surface a clear error to prevent silent misconfiguration.
+      // This still allows teams to set up `/api` rewrites later without code changes.
+      console.error(
+        '[API] REACT_APP_API_URL is not set. In production you must set it to your backend, ' +
+        "e.g. 'https://your-backend.com/api'. Falling back to same-origin '/api'."
+      );
+      return `${window.location.origin}/api`;
+    }
+  }
+
+  return 'http://localhost:3001/api';
+};
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
+  baseURL: resolveBaseURL(),
   withCredentials: true,
   timeout: 15000 // 15s default (was 30s)
 });

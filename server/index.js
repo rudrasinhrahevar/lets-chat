@@ -27,7 +27,13 @@ cloudinary.config({
 console.log('✅ Cloudinary configured with cloud_name: dnucxmp2s');
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: [
+    process.env.CLIENT_URL,
+    process.env.FRONTEND_URL,
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://lets-chat-delta.vercel.app"
+  ].filter(Boolean),
   credentials: true,
 }));
 app.use(express.json());
@@ -73,7 +79,13 @@ const server = app.listen(PORT, () => {
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: [
+      process.env.CLIENT_URL,
+      process.env.FRONTEND_URL,
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://lets-chat-delta.vercel.app"
+    ].filter(Boolean),
     credentials: true,
   },
 });
