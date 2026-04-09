@@ -5,6 +5,9 @@ const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.EMAIL_PORT || '587'),
   secure: false,
+  // Prevent signup/login requests from hanging if SMTP is slow/misconfigured.
+  connectionTimeout: 15000,
+  socketTimeout: 15000,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
@@ -24,11 +27,10 @@ export const sendEmail = async ({ to, subject, text, html }) => {
     return info;
   } catch (error) {
     logger.error(`Email send failed to ${to}:`, error.message);
-    // Don't throw — email failure shouldn't block auth flow in dev
+    // Never throw from email delivery: auth flow should not depend on SMTP.
     if (process.env.NODE_ENV === 'development') {
       logger.warn(`[DEV] OTP email would have been sent to ${to}. Check console for OTP.`);
-      return null;
     }
-    throw error;
+    return null;
   }
 };

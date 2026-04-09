@@ -24,7 +24,8 @@ export const register = asyncHandler(async (req, res) => {
 
       logger.info(`[DEV] OTP for ${email}: ${otp}`);
 
-      await sendEmail({
+      // Don't block signup on email delivery (SMTP can be slow/misconfigured in production).
+      sendEmail({
         to: email,
         subject: 'Verify your account',
         text: `Your OTP is: ${otp}. Expires in 5 minutes.`,
@@ -49,7 +50,8 @@ export const register = asyncHandler(async (req, res) => {
 
   logger.info(`[DEV] OTP for ${email}: ${otp}`);
 
-  await sendEmail({
+  // Don't block signup on email delivery (SMTP can be slow/misconfigured in production).
+  sendEmail({
     to: email,
     subject: 'Verify your account',
     text: `Your OTP is: ${otp}. Expires in 5 minutes.`,
@@ -158,7 +160,8 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
   logger.info(`[DEV] Reset OTP for ${email}: ${otp}`);
 
-  await sendEmail({
+  // Don't block password reset request on email delivery.
+  sendEmail({
     to: email,
     subject: 'Reset your password',
     text: `Your reset OTP is: ${otp}. Expires in 5 minutes.`
