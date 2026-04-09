@@ -1,5 +1,12 @@
 import nodemailer from 'nodemailer';
 import logger from '../utils/logger.js';
+import dns from 'dns';
+
+// Prefer IPv4 to avoid ENETUNREACH on environments without IPv6 routing
+// (common on some Windows networks and certain hosting setups).
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch {}
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
@@ -8,6 +15,8 @@ const transporter = nodemailer.createTransport({
   // Prevent signup/login requests from hanging if SMTP is slow/misconfigured.
   connectionTimeout: 15000,
   socketTimeout: 15000,
+  // Force IPv4 when available; avoids nodemailer choosing AAAA records.
+  family: 4,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
