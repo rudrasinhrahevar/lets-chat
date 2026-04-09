@@ -13,7 +13,29 @@ export const register = asyncHandler(async (req, res) => {
   if (password.length < 8) return res.status(400).json({ success: false, message: 'Password must be 8+ characters' });
 
   const existing = await User.findOne({ email });
-  if (existing) return res.status(409).json({ success: false, message: 'Email already registered' });
+  if (existing) {
+    // If the account exists but isn't verified yet, re-send OTP instead of blocking signup.
+    // This prevents users getting stuck if they missed/expired the original OTP.
+    if (!existing.isVerified) {
+      const otp = generateOTP();
+      existing.otp = await bcrypt.hash(otp, 8);
+      existing.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+      await existing.save();
+
+      logger.info(`[DEV] OTP for ${email}: ${otp}`);
+
+      await sendEmail({
+        to: email,
+        subject: 'Verify your account',
+        text: `Your OTP is: ${otp}. Expires in 5 minutes.`,
+        html: `<h2>Welcome to ChatApp!</h2><p>Your verification code is: <strong>${otp}</strong></p><p>Expires in 5 minutes.</p>`
+      });
+
+      return res.status(200).json({ success: true, message: 'OTP resent to email', userId: existing._id });
+    }
+
+    return res.status(409).json({ success: false, message: 'Email already registered' });
+  }
 
   const otp = generateOTP();
   const hashed = await bcrypt.hash(password, 12);

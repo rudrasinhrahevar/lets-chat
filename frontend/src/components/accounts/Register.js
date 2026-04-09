@@ -41,9 +41,13 @@ export default function Register() {
         return;
       }
 
-      await register(name, email, password);
-      toast.success("Account created! Check your email for OTP verification.");
-      navigate("/verify-otp");
+      const result = await register(name, email, password);
+      const userId = result?.userId;
+      if (!userId) {
+        throw new Error("Missing userId from register response");
+      }
+      toast.success(result?.message || "OTP sent to your email. Please verify.");
+      navigate("/verify-otp", { state: { userId, email } });
     } catch (e) {
       const errorMsg = e.response?.data?.message || "Failed to register";
       setError(errorMsg);
