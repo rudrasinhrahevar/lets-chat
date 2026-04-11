@@ -1,65 +1,120 @@
-# Let's Chat
+LetsChat
 
-A real-time chat application. Another fun side project :)
+A full-stack real-time messaging application built with Node.js, Express, MongoDB, and Socket.IO, enabling secure and scalable communication.
 
-![Screenshot from 2022-09-07 16-27-25](https://user-images.githubusercontent.com/66206865/188901222-8eefabe5-8ca2-4305-aeb3-3afa37b304b3.png)
+Overview
 
-![Screenshot from 2022-09-07 17-11-16](https://user-images.githubusercontent.com/66206865/188900580-01d0d3ca-b242-4f48-99cf-96edeeb5f1db.png)
+LetsChat is a real-time chat platform designed using a client-server architecture. It integrates RESTful APIs with WebSocket-based communication to deliver low-latency messaging, secure authentication, and efficient data handling.
 
-GIFs are attached at the end.
+Features
+Real-time messaging using Socket.IO
+JWT-based authentication and authorization
+One-to-one private conversations
+Media upload support via Cloudinary
+User presence tracking (online/offline)
+RESTful API design
+Scalable and modular backend structure
+Architecture
 
-## Technologies Used
+The application follows a modular client-server architecture:
 
-- React and TailwindCSS for the frontend
-- Firebase for authentication
-- Node/Express for creating API endpoints
-- MongoDB for storing chat room members and their messages
-- Socket.io for making the app real-time
+Client – Handles user interface and socket connections
+Server – Provides REST APIs and WebSocket services
+Database – MongoDB for persistent data storage
+Tech Stack
 
-## Basic Features
+Backend
 
-- Users can register/login via email and password.
-- Profile page where users can update their avatar and display name.
-- Generate random avatars using [DiceBear API](https://avatars.dicebear.com/docs/http-api)
-- Users can create a room to chat with others.
-- Users can see online status.
-- Search functionality.
-- Chatting is real-time.
-- Emoji picker is also integrated.
-- Dark mode can be enabled.
+Node.js
+Express.js
+MongoDB (Mongoose)
+Socket.IO
 
-## Getting Started
+Services
 
-To run this project locally, follow these steps:
+Cloudinary (media storage)
+Nodemailer (email services)
+Project Structure
+lets-chat/
+├── server/
+│   ├── controllers/
+│   ├── models/
+│   ├── routes/
+│   ├── middleware/
+│   └── server.js
+│
+├── client/            # Frontend (if applicable)
+├── config/            # Configuration files
+├── .env               # Environment variables
+├── package.json
+└── README.md
+Getting Started
+Prerequisites
+Node.js (v16 or higher)
+MongoDB instance (local or cloud)
+Installation
+git clone https://github.com/rudrasinhrahevar/lets-chat.git
+cd lets-chat
+npm install
+Running the Application
+# Development
+npm run dev
 
-1. Clone the repository.
-2. Install the dependencies:
-   - Navigate to the `frontend` directory and run `npm install`.
-   - Navigate to the `server` directory and run `npm install`.
-3. Set up Firebase:
-   - Go to the [Firebase Console](https://console.firebase.google.com/).
-   - Create a new project or select an existing one.
-   - Go to the project settings or service accounts section.
-   - Click on "Generate new private key" or a similar option.
-   - Save the downloaded JSON file as `serviceAccountKey.json`.
-   - Place the downloaded `serviceAccountKey.json` file in the `server/config` directory.
-4. Set up Environment Variables:
-   - In the `frontend` directory, create a new file named `.env` based on the `.env.example` file.
-   - Update the values of the environment variables in the `.env` file with your Firebase configuration details.
-   - In the root directory, create a new file named `.env` based on the `.env.example` file.
-   - Update the values of the environment variables in the `.env` file according to your preferences. For example, set the `PORT` variable to specify the desired port for the server and set `MONGO_URI` to your MongoDB connection URI.
-5. Run the server:
-   - Navigate to the `server` directory and run `npm run start`.
-6. Run the client:
-   - Navigate to the `frontend` directory and run `npm start`.
-7. The application will be accessible at `http://localhost:3000`.
+# Production
+npm start
+Environment Variables
 
-Please make sure to keep the `serviceAccountKey.json` file and sensitive information secure and not commit them to version control.
+Create a .env file in the root directory and configure the following:
 
-## GIFs
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
 
-![chrome-capture-2022-8-7](https://user-images.githubusercontent.com/66206865/188901119-65a05b65-3c76-4c3f-92c5-042d061df8e1.gif)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 
-![chrome-capture-2022-8-7 (1)](https://user-images.githubusercontent.com/66206865/188900841-2dfe91c2-eb78-4f70-a013-babe0124ee68.gif)
+EMAIL_USER=your_email
+EMAIL_PASS=your_email_password
+Scripts
+Command	Description
+npm run dev	Start server in development mode
+npm start	Start server in production
+API Overview
+Method	Endpoint	Description
+POST	/api/auth/register	Register a user
+POST	/api/auth/login	Authenticate user
+GET	/api/users	Retrieve users
+POST	/api/messages	Send a message
+Security
+Secure HTTP headers using Helmet
+Rate limiting to prevent abuse
+XSS protection
+MongoDB query sanitization
+Token-based authentication using JWT
+Deployment
 
-![chrome-capture-2022-8-7 (2)](https://user-images.githubusercontent.com/66206865/188900662-a120aef4-ced1-442b-98dd-ab90b4cea7b5.gif)
+The application can be deployed on platforms such as:
+
+Render
+Railway
+AWS
+DigitalOcean
+
+Ensure all required environment variables are properly configured in the deployment environment.
+
+Contributing
+
+Contributions are welcome.
+
+Fork the repository
+Create a feature branch
+Commit your changes
+Submit a pull request
+License
+
+This project is licensed under the ISC License.
+
+Author
+
+Rudrasinh
